@@ -1,0 +1,195 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spotify GIF Generator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      background: #121212;
+      color: #fff;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .input-group {
+      width: 100%;
+      max-width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input[type="file"],
+    input[type="text"],
+    button {
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      width: 100%;
+    }
+
+    input[type="text"] {
+      background: #1e1e1e;
+      color: white;
+    }
+
+    button {
+      background-color: #1DB954;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #17a44a;
+    }
+
+    canvas {
+      max-width: 100%;
+      height: auto;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    }
+  </style>
+</head>
+<body>
+  <h2>🎧 Spotify Style GIF Maker</h2>
+
+  <div class="input-group">
+    <input type="file" id="imageInput" accept="image/*">
+    <input type="text" id="title" placeholder="Song Title">
+    <input type="text" id="artist" placeholder="Artist Name">
+    <button onclick="generateGIF()">🎬 Generate GIF</button>
+  </div>
+
+  <canvas id="musicCanvas" width="600" height="800"></canvas>
+
+  <!-- gif.js library -->
+  <script src="https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.js"></script>
+  <script>
+    const canvas = document.getElementById("musicCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let image = new Image();
+    let songTitle = "Song Title";
+    let artistName = "Artist Name";
+    let progress = 0;
+
+    // High-DPI canvas support
+    function scaleCanvasForHiDPI(c) {
+      const scale = window.devicePixelRatio || 1;
+      c.width = 300 * scale;
+      c.height = 400 * scale;
+      c.style.width = '300px';
+      c.style.height = '400px';
+      return scale;
+    }
+
+    const scale = scaleCanvasForHiDPI(canvas);
+    ctx.scale(scale, scale);
+
+    function drawFrame(progressPercent) {
+      ctx.clearRect(0, 0, 300, 400);
+
+      ctx.fillStyle = "#1e1e1e";
+      ctx.fillRect(0, 0, 300, 400);
+
+      if (image.src) ctx.drawImage(image, 0, 0, 300, 300);
+      else {
+        ctx.fillStyle = "#333";
+        ctx.fillRect(0, 0, 300, 300);
+      }
+
+      ctx.fillStyle = "white";
+      ctx.font = "bold 16px Arial";
+      ctx.fillText(songTitle, 10, 330);
+      ctx.font = "14px Arial";
+      ctx.fillStyle = "#b3b3b3";
+      ctx.fillText(artistName, 10, 350);
+
+      ctx.fillStyle = "#444";
+      ctx.fillRect(10, 370, 280, 10);
+
+      ctx.fillStyle = "#1DB954";
+      ctx.fillRect(10, 370, 280 * progressPercent, 10);
+
+      ctx.beginPath();
+      ctx.moveTo(260, 310);
+      ctx.lineTo(260, 290);
+      ctx.lineTo(280, 300);
+      ctx.closePath();
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+    }
+
+    function generateGIF() {
+      const gif = new GIF({
+        workers: 2,
+        quality: 10,
+        width: 300,
+        height: 400,
+        workerScript: 'https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.worker.js',
+        repeat: 0
+      });
+
+      const totalFrames = 20;
+      for (let i = 0; i < totalFrames; i++) {
+        const prog = (i / (totalFrames - 1));
+        drawFrame(prog);
+        gif.addFrame(ctx, {copy: true, delay: 100});
+      }
+
+      gif.on('finished', function(blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'spotify_card.gif';
+        a.click();
+      });
+
+      gif.render();
+    }
+
+    document.getElementById("title").addEventListener("input", e => {
+      songTitle = e.target.value || "Song Title";
+      drawFrame(progress);
+    });
+
+    document.getElementById("artist").addEventListener("input", e => {
+      artistName = e.target.value || "Artist Name";
+      drawFrame(progress);
+    });
+
+    document.getElementById("imageInput").addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          image.src = evt.target.result;
+          image.onload = () => drawFrame(progress);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    drawFrame(0);
+  </script>
+</body>
+</html>
